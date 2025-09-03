@@ -1,0 +1,35 @@
+export const theme = {
+  colors: {
+    primary: '#3498db',
+    secondary: '#2ecc71',
+    danger: '#e74c3c',
+    warning: '#f39c12',
+    dark: '#2c3e50',
+    light: '#ecf0f1',
+    gray: {
+      100: '#f8f9fa',
+      200: '#e9ecef',
+      300: '#dee2e6',
+      400: '#ced4da',
+      500: '#adb5bd',
+      600: '#6c757d',
+      700: '#495057',
+      800: '#343a40',
+      900: '#212529',
+    },
+  },
+  breakpoints: {
+    sm: '576px',
+    md: '768px',
+    lg: '992px',
+    xl: '1200px',
+  },
+  spacing: {
+    xs: '0.25rem',
+    sm: '0.5rem',
+    md: '1rem',
+    lg: '1.5rem',
+    xl: '2rem',
+    xxl: '3rem',
+  },
+};
