@@ -40,18 +40,18 @@ Assim, o sistema apoia decisões estratégicas e demonstra, em ambiente acadêmi
 |-->Documentos<br>
    &emsp;|-->Entrega 1<br>
      &emsp;&emsp;|-->ES e AS (Engenharia de Software e Arquitetura de Dados)<br>
-   &emsp;|-->Entrega 2<br> 
-|-->Projeto<br>
-   &emsp;|-->picmoney-app<br>
-    &emsp;&emsp;|-->backend<br>
-    &emsp;&emsp;|-->frontend<br>
-|-->meu-dashboard<br>
-|-->.gitignore<br>
+   &emsp;|-->Entrega 2<br>
+|--> SRC<br>
+   &emsp;|-->FRONTEND+BACKEND_TESTE<br>
+   &emsp;&emsp;|-->picmoney-app<br>
+   &emsp;&emsp;&emsp;|-->backend<br>
+   &emsp;&emsp;&emsp;|-->frontend<br>
+   &emsp;|-->FRONTEND<br>
+|.gitignore<br>
 |README.md<br>
 
 **documentos**: Entregas acadêmicas (PDFs e relatórios).  
-**Projeto**: FrontEnd e Backend integrados.  
-**meu-dashboard**: FrontEnd ideal.  
+**SRC**: Todo código do projeto.  
 
 ---
 
