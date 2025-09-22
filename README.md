@@ -39,7 +39,11 @@ Assim, o sistema apoia decisões estratégicas e demonstra, em ambiente acadêmi
 |  
 |-->Documentos<br>
    &emsp;|-->Entrega 1<br>
-     &emsp;&emsp;|-->ES e AS (Engenharia de Software e Arquitetura de Dados)<br>
+      &emsp;&emsp;|-->Analise Inferencial de Dados<br>
+      &emsp;&emsp;|-->Contabilidade e Finanças<br>
+      &emsp;&emsp;|-->ES e AS (Engenharia de Software e Arquitetura de Dados)<br>
+      &emsp;&emsp;|-->PI Ciência de Dados<br>
+      &emsp;&emsp;&emsp;|-->Base de Dados<br>
    &emsp;|-->Entrega 2<br>
 |--> SRC<br>
    &emsp;|-->FRONTEND+BACKEND_TESTE<br>
@@ -47,6 +51,8 @@ Assim, o sistema apoia decisões estratégicas e demonstra, em ambiente acadêmi
    &emsp;&emsp;&emsp;|-->backend<br>
    &emsp;&emsp;&emsp;|-->frontend<br>
    &emsp;|-->FRONTEND<br>
+   &emsp;&emsp;|-->public<br>
+   &emsp;&emsp;|-->src<br>
 |.gitignore<br>
 |README.md<br>
 
