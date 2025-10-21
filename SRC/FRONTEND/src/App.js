@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+// App.js
+import React from 'react';
 import styled from 'styled-components';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
-// Importe os componentes corretamente
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Login';
+import Login from './components/Login';
 import ReportsPage from './components/ReportsPage';
 import SettingsPage from './components/SettingsPage';
 
-// Estilos globais
 const AppContainer = styled.div`
   display: flex;
   min-height: 100vh;
@@ -30,30 +30,21 @@ const MainContent = styled.main`
   }
 `;
 
-function App() {
-  const [activePage, setActivePage] = useState('dashboard');
-
-  // Função para renderizar a página correta
-  const renderPage = () => {
-    switch (activePage) {
-      case 'reports':
-        return <ReportsPage />;
-      case 'settings':
-        return <SettingsPage />;
-      case 'dashboard':
-      default:
-        return <Dashboard />;
-    }
-  };
-
+export default function App() {
   return (
     <AppContainer>
-      <Sidebar activePage={activePage} setActivePage={setActivePage} />
+      <Sidebar />
       <MainContent>
-        {renderPage()}
+        <Routes>
+          {/* redireciona raiz para /reports (ajuste se preferir outra página inicial) */}
+          <Route path="/" element={<Navigate to="/reports" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          {/* 404 simples */}
+          <Route path="*" element={<div>Página não encontrada</div>} />
+        </Routes>
       </MainContent>
     </AppContainer>
   );
 }
-
-export default App;

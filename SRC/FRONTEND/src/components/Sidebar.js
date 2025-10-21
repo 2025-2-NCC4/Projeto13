@@ -1,7 +1,8 @@
+// components/Sidebar.js
 import React from 'react';
 import styled from 'styled-components';
+import { NavLink } from 'react-router-dom';
 
-// Estilos da Sidebar (use os que você já tem)
 const SidebarContainer = styled.div`
   width: 280px;
   background: #1f2937;
@@ -37,17 +38,22 @@ const SidebarNav = styled.nav`
   padding: 0 20px;
 `;
 
-const NavItem = styled.a`
+// troque styled.a por styled(NavLink)
+const NavItem = styled(NavLink)`
   display: flex;
   align-items: center;
   padding: 14px 16px;
-  color: ${props => props.active ? 'white' : '#d1d5db'};
+  color: #d1d5db;
   text-decoration: none;
   border-radius: 10px;
   margin-bottom: 6px;
   transition: all 0.3s ease;
-  cursor: pointer;
-  background: ${props => props.active ? '#3b82f6' : 'transparent'};
+  background: transparent;
+
+  &.active {
+    background: #3b82f6;
+    color: white;
+  }
 
   &:hover {
     background: #374151;
@@ -87,46 +93,32 @@ const LogoutButton = styled.button`
   }
 `;
 
-const Sidebar = ({ activePage, setActivePage }) => {
+const Sidebar = () => {
   return (
     <SidebarContainer>
       <SidebarHeader>
         <SidebarTitle>PicMoney</SidebarTitle>
       </SidebarHeader>
-      
+
       <SidebarNav>
-        {/* Item de Relatórios */}
-        <NavItem 
-          active={activePage === 'reports'} 
-          onClick={() => setActivePage('reports')}
-        >
+        <NavItem to="/reports">
           <NavIcon>📊</NavIcon>
           <span>Relatórios</span>
         </NavItem>
-        
-        {/* Item de Configurações */}
-        <NavItem 
-          active={activePage === 'settings'} 
-          onClick={() => setActivePage('settings')}
-        >
+
+        <NavItem to="/settings">
           <NavIcon>⚙️</NavIcon>
           <span>Configurações</span>
         </NavItem>
-        
-         {/* Item de Login */}
-        <NavItem 
-          active={activePage === 'login'} 
-          onClick={() => setActivePage('login')}
-        >
+
+        <NavItem to="/login">
           <NavIcon>🔐</NavIcon>
           <span>Login</span>
         </NavItem>
 
         <NavDivider />
-        
-        
       </SidebarNav>
-      
+
       <LogoutButton>
         <NavIcon>🚪</NavIcon>
         <span>Sair</span>
