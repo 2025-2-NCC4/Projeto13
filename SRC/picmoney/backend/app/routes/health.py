@@ -1,6 +1,7 @@
 from flask import Blueprint
 
-bp = Blueprint("health", __name__)
+# Prefix all health routes with /api to match the frontend
+bp = Blueprint("health", __name__, url_prefix="/api")
 
 @bp.get("/health")
 def health():
