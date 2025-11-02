@@ -7,6 +7,8 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import ProtectedRoute from './ProtectedRoute';
 import { useAuth } from './AuthContext';
+import CfoDashboard from './pages/CFODashboard.js';
+
 
 const AppContainer = styled.div`
   display: flex;
@@ -39,9 +41,10 @@ export default function App() {
       <MainContent $authed={isAuthenticated}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Login />}/>
           <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/cfo" element={<ProtectedRoute><CfoDashboard/></ProtectedRoute>}/>
           <Route path="*" element={<div>Página não encontrada</div>} />
         </Routes>
       </MainContent>

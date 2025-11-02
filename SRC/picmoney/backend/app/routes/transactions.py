@@ -3,8 +3,7 @@ from sqlalchemy import text
 from ..db import db_engine, init_db
 from ..utils.pagination import get_pagination
 
-# Prefix all transactions routes with /api to match the frontend
-bp = Blueprint("transactions", __name__, url_prefix="/api")
+bp = Blueprint("transactions", __name__)
 
 def _engine():
     return db_engine or init_db(current_app.config["SETTINGS"].DATABASE_URL)

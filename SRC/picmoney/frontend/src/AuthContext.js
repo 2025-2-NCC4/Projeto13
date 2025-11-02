@@ -17,23 +17,11 @@ export function AuthProvider({ children }) {
   }, [isAuthenticated]);
 
   async function login(username, password) {
-  const res = await fetch("http://localhost:5000/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Falha ao fazer login");
+    const { access_token } = await api.login({ username, password });
+    localStorage.setItem("access_token", access_token);
+    setAuthed(true);
+    return true;
   }
-
-  const data = await res.json();
-  localStorage.setItem("access_token", data.access_token);
-  setAuthed(true);
-  return data;
-}
-
 
   function logout() {
     localStorage.removeItem("access_token");
