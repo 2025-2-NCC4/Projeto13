@@ -12,12 +12,24 @@ async function http(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
+    // se o backend usa cookie de sessão, mantenha:
+    credentials: options.credentials ?? "omit",
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status} - ${text || res.statusText}`);
   }
   return res.json();
+}
+
+// helper de querystring
+function qs(params = {}) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") q.append(k, v);
+  });
+  const s = q.toString();
+  return s ? `?${s}` : "";
 }
 
 export const api = {
@@ -32,9 +44,11 @@ export const api = {
   // já existentes
   health: () => http("/api/health"),
   kpisSummary: () => http("/api/kpis/summary"),
-  players: (params = {}) => http(`/api/players?${new URLSearchParams(params)}`),
-  transactions: (params = {}) =>
-    http(`/api/transactions?${new URLSearchParams(params)}`),
-  merchants: (params = {}) =>
-    http(`/api/merchants?${new URLSearchParams(params)}`),
+  players: (params = {}) => http(`/api/players${qs(params)}`),
+  transactions: (params = {}) => http(`/api/transactions${qs(params)}`),
+  merchants: (params = {}) => http(`/api/merchants${qs(params)}`),
+
+  // 🔹 novos: KPIs por perfil
+  kpisCeo: (params = {}) => http(`/api/kpis/ceo${qs(params)}`),
+  kpisCfo: (params = {}) => http(`/api/kpis/cfo${qs(params)}`),
 };

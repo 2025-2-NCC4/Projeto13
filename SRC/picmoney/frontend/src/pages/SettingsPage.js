@@ -240,7 +240,7 @@ const SettingsPage = () => {
   return (
     <Container>
       <Header>
-        <PageTitle>Configurações</PageTitle>
+        <PageTitle>CFODashboard</PageTitle>
       </Header>
       
       <ContentContainer>

@@ -121,12 +121,12 @@ export default function Sidebar() {
         {/* REMOVIDO: item de Login */}
         <NavItem to="/reports">
           <NavIcon>📊</NavIcon>
-          <span>Relatórios</span>
+          <span>CEO</span>
         </NavItem>
 
-        <NavItem to="/settings">
-          <NavIcon>⚙️</NavIcon>
-          <span>Configurações</span>
+        <NavItem to="/cfo">
+          <NavIcon></NavIcon>
+          <span>CFO</span>
         </NavItem>
 
         <NavDivider />
