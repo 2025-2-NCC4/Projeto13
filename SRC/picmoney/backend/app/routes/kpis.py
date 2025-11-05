@@ -117,6 +117,302 @@ def summary():
     return jsonify(payload), 200
 
 
+@bp.route("/ceo", methods=["GET", "OPTIONS"])
+def kpis_ceo():
+    """
+    KPIs e séries para o CEO com filtros e granularidade.
+    Query params:
+      - start, end: YYYY-MM-DD
+      - group_by: day | week | month (default: week)
+      - category: lista separada por vírgula (ex.: cat1,cat2)
+      - merchant: lista separada por vírgula
+    """
+    # Resposta imediata a preflight CORS
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+    eng = _engine()
+    start = request.args.get("start") or None
+    end = request.args.get("end") or None
+    group_by = (request.args.get("group_by") or "week").lower()
+    if group_by not in ("day", "week", "month"):
+        group_by = "week"
+
+    # parse lists
+    def parse_list(arg):
+        if not arg:
+            return []
+        return [s.strip() for s in str(arg).split(",") if str(s).strip()]
+
+    def fix_mojibake(s):
+        try:
+            if s is None:
+                return ""
+            s = str(s)
+            if "Ã" in s or "Â" in s:
+                try:
+                    return s.encode("latin-1", errors="ignore").decode("utf-8", errors="ignore").strip()
+                except Exception:
+                    return s.strip()
+            return s.strip()
+        except Exception:
+            return str(s or "")
+
+    def norm(s):
+        return fix_mojibake(s).lower()
+
+    filter_categories = [norm(s) for s in parse_list(request.args.get("category"))]
+    filter_merchants = [norm(s) for s in parse_list(request.args.get("merchant"))]
+
+    with eng.connect() as conn:
+        tcols = _cols(conn, "transactions")
+
+        def to_float(x):
+            if x is None:
+                return 0.0
+            try:
+                # tenta tratar formatos "12.345,67"
+                s = str(x).strip()
+                if "," in s and any(ch.isdigit() for ch in s):
+                    s = s.replace(".", "").replace(",", ".")
+                return float(s)
+            except Exception:
+                try:
+                    return float(x)
+                except Exception:
+                    return 0.0
+
+        def to_iso_date(raw):
+            if raw is None:
+                return None
+            s = str(raw).strip()
+            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S"):
+                try:
+                    return datetime.strptime(s, fmt).date().isoformat()
+                except Exception:
+                    pass
+            if len(s) >= 10 and s[4] == "-" and s[7] == "-":
+                return s[:10]
+            return None
+
+        def in_range(d_iso):
+            if not (start or end):
+                return True
+            if d_iso is None:
+                return False
+            if start and d_iso < start:
+                return False
+            if end and d_iso > end:
+                return False
+            return True
+
+        # detectar colunas
+        val_cands = [
+            "valor_compra", "valor_total", "total_compra",
+            "valor_de_compra", "valor_da_compra", "valor_cupom",
+        ]
+        rep_cands = [
+            "repasse", "valor_repasse", "taxa_repasse", "taxa", "valor_taxa",
+        ]
+        cat_cands = [
+            "categoria", "segmento", "categoria_loja", "categoria_produto", "tipo",
+        ]
+        mer_cands = [
+            "nome_loja", "loja", "merchant", "estabelecimento",
+        ]
+        cli_cands = [
+            "numero_celular", "telefone", "celular", "phone",
+        ]
+        date_cands = [
+            "data", "data_transacao", "data_compra", "dt",
+        ]
+
+        # escolher melhor coluna de valor pelo maior número de entradas > 0
+        base_col = None
+        best_cnt = -1
+        for col in val_cands:
+            if col in tcols:
+                try:
+                    cnt = conn.execute(text(
+                        f"SELECT SUM(CASE WHEN CAST(REPLACE({col}, ',', '.') AS REAL) > 0 THEN 1 ELSE 0 END) FROM transactions"
+                    )).scalar_one() or 0
+                except Exception:
+                    cnt = 0
+                if int(cnt) > best_cnt:
+                    base_col, best_cnt = col, int(cnt)
+        if not base_col:
+            base_col = next((c for c in val_cands if c in tcols), None)
+
+        repasse_col = next((c for c in rep_cands if c in tcols), None)
+        categoria_col = next((c for c in cat_cands if c in tcols), None)
+        merchant_col = next((c for c in mer_cands if c in tcols), None)
+        cliente_col = next((c for c in cli_cands if c in tcols), None)
+        data_col = next((c for c in date_cands if c in tcols), None)
+
+        # montar SELECT conforme colunas disponíveis
+        select_cols = []
+        names = []
+        if base_col:
+            select_cols.append(base_col); names.append("v")
+        if repasse_col:
+            select_cols.append(repasse_col); names.append("rep")
+        if categoria_col:
+            select_cols.append(categoria_col); names.append("cat")
+        if merchant_col:
+            select_cols.append(merchant_col); names.append("mer")
+        if data_col:
+            select_cols.append(data_col); names.append("d")
+        if cliente_col:
+            select_cols.append(cliente_col); names.append("cli")
+
+        if not select_cols:
+            return jsonify({
+                "error": "Nenhuma coluna relevante encontrada em transactions",
+                "columns": list(tcols),
+            }), 200
+
+        rows = conn.execute(text(f"SELECT {', '.join(select_cols)} FROM transactions")).all()
+
+        # acumuladores
+        total_transacoes = 0
+        receita_total = 0.0
+        repasse_total = 0.0
+        receita_por_categoria = defaultdict(float)
+        repasse_por_categoria = defaultdict(float)
+        receita_por_merchant = defaultdict(float)
+        acc_periodo = defaultdict(float)
+        transacoes_por_categoria = defaultdict(int)
+        clientes_set = set()
+        merchants_set = set()
+        categorias_set = set()
+
+        for r in rows:
+            idx = 0
+            v = to_float(r[idx]); idx += 1
+            rep = 0.0
+            if repasse_col:
+                rep = to_float(r[idx]); idx += 1
+            cat = None
+            if categoria_col:
+                cat = fix_mojibake(r[idx] or "")
+                idx += 1
+            mer = None
+            if merchant_col:
+                mer = fix_mojibake(r[idx] or "")
+                idx += 1
+            d_iso = None
+            if data_col:
+                d_iso = to_iso_date(r[idx]); idx += 1
+            cli = None
+            if cliente_col:
+                cli = str(r[idx] or "")
+                idx += 1
+
+            # filtros
+            if not in_range(d_iso):
+                continue
+            if filter_categories and (cat is None or norm(cat) not in filter_categories):
+                continue
+            if filter_merchants and (mer is None or norm(mer) not in filter_merchants):
+                continue
+
+            total_transacoes += 1
+            receita_total += v
+            repasse_total += rep
+
+            if categoria_col:
+                receita_por_categoria[cat or "Sem categoria"] += v
+                repasse_por_categoria[cat or "Sem categoria"] += rep
+                transacoes_por_categoria[cat or "Sem categoria"] += 1
+                categorias_set.add(cat or "Sem categoria")
+            if merchant_col:
+                fixed_mer = mer or "Sem loja"
+                receita_por_merchant[fixed_mer] += v
+                merchants_set.add(fixed_mer)
+            if cliente_col and cli:
+                clientes_set.add(cli)
+
+            # chave por período
+            key = None
+            if d_iso:
+                if group_by == "day":
+                    key = d_iso
+                elif group_by == "month":
+                    key = d_iso[:7]
+                else:  # week
+                    try:
+                        dt = datetime.fromisoformat(d_iso)
+                        y, w, _ = dt.isocalendar()
+                        key = f"{y}-W{int(w):02d}"
+                    except Exception:
+                        key = d_iso
+            if key is not None:
+                acc_periodo[key] += (v - rep)
+
+        receita_liquida = receita_total - repasse_total
+        margem_operacional_percent = (receita_liquida / receita_total * 100.0) if receita_total else 0.0
+        ticket_medio = (receita_total / total_transacoes) if total_transacoes else 0.0
+        taxa_repasse_percent = (repasse_total / receita_total * 100.0) if receita_total else 0.0
+
+        # margem por segmento com repasse por categoria real (quando possível)
+        margem_por_segmento = {}
+        for cat, rec in receita_por_categoria.items():
+            rep_c = repasse_por_categoria.get(cat, 0.0)
+            margem_cat = ((rec - rep_c) / rec * 100.0) if rec else 0.0
+            margem_por_segmento[cat] = round(margem_cat, 2)
+
+        # Fallback: se não houver coluna de categoria, usar merchants como "categorias" no donut
+        if not receita_por_categoria:
+            if receita_por_merchant:
+                items = sorted(receita_por_merchant.items(), key=lambda t: t[1], reverse=True)
+                top = items[:6]
+                outros = sum(v for _, v in items[6:])
+                receita_por_categoria = {k or "Sem loja": round(float(v or 0.0), 2) for k, v in top}
+                if outros:
+                    receita_por_categoria["Outros"] = round(float(outros), 2)
+                # margem por "segmento" (apenas informativa neste fallback)
+                total_rec = sum(receita_por_categoria.values()) or 1.0
+                margem_por_segmento = {k: round((receita_liquida / total_rec * 100.0), 2) for k in receita_por_categoria.keys()}
+            else:
+                # ainda assim, retorna uma fatia única para não quebrar o gráfico
+                receita_por_categoria = {"Geral": round(float(receita_total or 0.0), 2)}
+                margem_por_segmento = {"Geral": round(float(margem_operacional_percent or 0.0), 2)}
+
+        # top merchants
+        top_items = sorted(((fix_mojibake(n), val) for n, val in receita_por_merchant.items()), key=lambda t: t[1], reverse=True)[:10]
+        top_merchants = {
+            "labels": [name for name, _ in top_items],
+            "values": [round(float(val or 0.0), 2) for _, val in top_items],
+        }
+
+        payload = {
+            "filters_applied": {
+                "start": start, "end": end,
+                "group_by": group_by,
+                "category": filter_categories,
+                "merchant": filter_merchants,
+            },
+            "total_transacoes": int(total_transacoes or 0),
+            "receita_total": round(float(receita_total or 0.0), 2),
+            "repasse_total": round(float(repasse_total or 0.0), 2),
+            "receita_liquida": round(float(receita_liquida or 0.0), 2),
+            "margem_operacional_percent": round(float(margem_operacional_percent or 0.0), 2),
+            "ticket_medio": round(float(ticket_medio or 0.0), 2),
+            "taxa_repasse_percent": round(float(taxa_repasse_percent or 0.0), 2),
+            "receita_series": {k: round(v, 2) for k, v in sorted(acc_periodo.items())},
+            "receita_por_categoria": {fix_mojibake(k): round(v, 2) for k, v in receita_por_categoria.items()},
+            "margem_por_segmento": {fix_mojibake(k): v for k, v in margem_por_segmento.items()},
+            "top_merchants": top_merchants,
+            "clientes_unicos": len(clientes_set),
+            "lojas_unicas": len(merchants_set),
+            "available_filters": {
+                "categorias": sorted([fix_mojibake(x) for x in list(categorias_set)]),
+                "merchants": sorted([fix_mojibake(x) for x in list(merchants_set)]),
+            }
+        }
+
+        return jsonify(payload), 200
+
 @bp.get("/cfo")
 def kpis_cfo():
     """

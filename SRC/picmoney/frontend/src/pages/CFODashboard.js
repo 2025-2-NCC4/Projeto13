@@ -21,16 +21,24 @@ const Container = styled.div`
   padding: 20px;
 `;
 const Header = styled.div`
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
 `;
 const PageTitle = styled.h2` font-size: 28px; color: #2c3e50; `;
 const Filters = styled.div`
-  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  margin: 8px 0 20px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   input, button {
     border: 1px solid #ddd; border-radius: 8px; padding: 8px 10px;
     background: #fff; font-size: 14px;
   }
   button { cursor: pointer; }
+  @media print { display: none; }
 `;
 const Dashboard = styled.div`
   display: grid;
@@ -112,6 +120,39 @@ export default function CFODashboard() {
   const [kpis, setKpis] = React.useState(null);
   const [err, setErr] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const exportRef = React.useRef(null);
+
+  async function exportPDF() {
+    try {
+      const [{ default: html2canvas }, jsPdfModule] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ]);
+      const jsPDF = jsPdfModule.jsPDF || jsPdfModule.default || jsPdfModule;
+      const node = exportRef.current;
+      if (!node) return;
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft > 0) {
+        position -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      pdf.save('dashboard-cfo.pdf');
+    } catch (e) {
+      window.print();
+    }
+  }
 
   async function load(params) {
     setLoading(true); setErr("");
@@ -360,13 +401,25 @@ const custosOptions = {
   return (
     <Container>
       <Header>
-        <PageTitle>PicMoney – CFO (Financeiro)</PageTitle>
-        <Filters>
+        <PageTitle>PicMoney - CFO (Financeiro)</PageTitle>
+        <Filters style={{display:'none'}}>
           <input type="date" value={start} onChange={(e)=>setStart(e.target.value)} />
           <input type="date" value={end} onChange={(e)=>setEnd(e.target.value)} />
           <button onClick={() => load({ start, end })}>Aplicar</button>
+          <button onClick={() => { setStart(defaultStart); setEnd(defaultEnd); load(); }}>Limpar filtros</button>
+          <button onClick={() => window.print()}>Exportar PDF</button>
         </Filters>
       </Header>
+      <Filters>
+        <label>De</label>
+        <input type="date" value={start} onChange={(e)=>setStart(e.target.value)} />
+        <label>Até</label>
+        <input type="date" value={end} onChange={(e)=>setEnd(e.target.value)} />
+        <button onClick={() => load({ start, end })}>Aplicar</button>
+        <button onClick={() => { setStart(defaultStart); setEnd(defaultEnd); load(); }}>Limpar filtros</button>
+        <button onClick={exportPDF}>Exportar PDF</button>
+      </Filters>
+      <div ref={exportRef}>
 
       {err && <div style={{color: 'crimson', marginBottom: 16}}>Erro: {err}</div>}
       {loading && <div style={{marginBottom: 16}}>Carregando…</div>}
@@ -439,6 +492,7 @@ const custosOptions = {
         </ChartContainer>
 
       </ChartsGrid>
+      </div>
     </Container>
   );
 }

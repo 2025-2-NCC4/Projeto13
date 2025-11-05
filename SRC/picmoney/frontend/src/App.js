@@ -30,6 +30,12 @@ const MainContent = styled.main`
     width: ${p => (p.$authed ? 'calc(100% - 70px)' : '100%')};
     padding: 20px;
   }
+  @media print {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 10px;
+    background: white;
+  }
 `;
 
 export default function App() {

@@ -16,6 +16,7 @@ const SidebarContainer = styled.div`
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  @media print { display: none; }
 `;
 
 const SidebarHeader = styled.div`
