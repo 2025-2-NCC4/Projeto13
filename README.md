@@ -45,6 +45,13 @@ Assim, o sistema apoia decisões estratégicas e demonstra, em ambiente acadêmi
       &emsp;&emsp;|-->PI Ciência de Dados<br>
       &emsp;&emsp;&emsp;|-->Base de Dados<br>
    &emsp;|-->Entrega 2<br>
+   &emsp;&emsp;|-->Analise Inferencial de Dados<br>
+   &emsp;&emsp;|-->Contabilidade e Finanças<br>
+   &emsp;&emsp;|-->ES e AS (Engenharia de Software e Arquitetura de Dados)<br>
+   &emsp;&emsp;|-->PI Ciência de Dados<br>
+   &emsp;|-->Banner_FECAP_CCOMP4_ADGV.pdf<br>
+   &emsp;|-->Documento - Projeto de Extensão - COM Empresa.docx<br>
+   &emsp;|-->Documento - Projeto de Extensão - COM Empresa.pdf<br>
 |--> SRC<br>
    &emsp;|-->FRONTEND+BACKEND_TESTE<br>
    &emsp;&emsp;|-->picmoney-app<br>
